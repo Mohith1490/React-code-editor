@@ -59,7 +59,7 @@ code-editor/
 ## Video
 
 <video width="640" height="360" controls>
-  <source src="./public/Screencast from 2025-01-21 04-25-32.webm" type="video/webm">
+  <source src="./public/video.webm" type="video/webm">
   Your browser does not support the video tag.
 </video>
 
