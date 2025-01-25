@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Box, Button, Text, useToast } from "@chakra-ui/react";
-import { executeCode } from "../api";
+import * as Babel from "@babel/standalone";
+import React  from "react";
+import ReactDOM from 'react'
 
 const Output = ({ editorRef, language }) => {
   const toast = useToast();
@@ -11,16 +13,42 @@ const Output = ({ editorRef, language }) => {
   const runCode = async () => {
     const sourceCode = editorRef.current.getValue();
     if (!sourceCode) return;
+
     try {
       setIsLoading(true);
-      const { run: result } = await executeCode(language, sourceCode);
-      setOutput(result.output.split("\n"));
-      result.stderr ? setIsError(true) : setIsError(false);
+
+      if (language === "javascript" || language === "jsx") {
+        
+        const transformedCode = Babel.transform(sourceCode, {
+          presets: ["react"],
+        }).code;
+
+        
+        let executionResult = "";
+        const executeCode = new Function("React", "ReactDOM", "return " + transformedCode);
+        executionResult = executeCode(React, ReactDOM);
+
+        setOutput(executionResult);
+        setIsError(false);
+
+        // If you want the result of the execution, handle it here
+        console.log("Execution Result:", executionResult);
+      } else {
+        toast({
+          title: "Unsupported language.",
+          description: "Babel transformation only works for JavaScript/JSX.",
+          status: "warning",
+          duration: 6000,
+        });
+        setOutput(["Unsupported language for Babel transformation."]);
+      }
     } catch (error) {
       console.log(error);
+      setIsError(true);
+      setOutput([`Error: ${error.message}`]);
       toast({
         title: "An error occurred.",
-        description: error.message || "Unable to run code",
+        description: error.message || "Unable to transform and execute code",
         status: "error",
         duration: 6000,
       });
@@ -50,12 +78,12 @@ const Output = ({ editorRef, language }) => {
         border="1px solid"
         borderRadius={4}
         borderColor={isError ? "red.500" : "#333"}
+        overflowY="auto"
       >
-        {output
-          ? output.map((line, i) => <Text key={i}>{line}</Text>)
-          : 'Click "Run Code" to see the output here'}
+        {output}
       </Box>
     </Box>
   );
 };
+
 export default Output;
